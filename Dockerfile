@@ -28,8 +28,12 @@ RUN mkdir -p uploads temp
 # Set permissions
 RUN chmod -R 777 uploads temp
 
+# Create a simple health check script
+RUN echo '#!/bin/bash\ncurl -f http://localhost:$PORT/ || exit 1' > /usr/local/bin/healthcheck.sh \
+    && chmod +x /usr/local/bin/healthcheck.sh
+
 # Expose the port
 EXPOSE $PORT
 
-# Run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "--workers", "1", "--timeout", "120", "app:app"] 
+# Run the application with proper signal handling
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --preload app:app"] 
