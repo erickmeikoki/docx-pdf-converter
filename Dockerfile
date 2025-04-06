@@ -4,6 +4,7 @@ FROM python:3.9-slim
 RUN apt-get update && apt-get install -y \
     libreoffice \
     python3-pip \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
@@ -28,8 +29,15 @@ RUN mkdir -p uploads temp
 # Set permissions
 RUN chmod -R 777 uploads temp
 
-# Create a simple health check script
-RUN echo '#!/bin/bash\ncurl -f http://localhost:$PORT/ || exit 1' > /usr/local/bin/healthcheck.sh \
+# Create a more robust health check script
+RUN echo '#!/bin/bash\n\
+for i in {1..30}; do\n\
+  if curl -f http://localhost:$PORT/health; then\n\
+    exit 0\n\
+  fi\n\
+  sleep 2\n\
+done\n\
+exit 1' > /usr/local/bin/healthcheck.sh \
     && chmod +x /usr/local/bin/healthcheck.sh
 
 # Expose the port

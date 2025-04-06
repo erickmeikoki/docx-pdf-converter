@@ -5,6 +5,8 @@ from werkzeug.utils import secure_filename
 import subprocess
 import base64
 from datetime import datetime
+import tempfile
+import shutil
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -41,7 +43,27 @@ def index():
 @app.route('/health')
 def health_check():
     """Health check endpoint"""
-    return jsonify({"status": "healthy"}), 200
+    try:
+        # Check if required directories exist and are writable
+        for folder in [app.config['UPLOAD_FOLDER'], app.config['TEMP_FOLDER']]:
+            if not os.path.exists(folder):
+                os.makedirs(folder)
+            if not os.access(folder, os.W_OK):
+                return jsonify({"status": "error", "message": f"Directory {folder} is not writable"}), 500
+        
+        # Check if LibreOffice is available
+        try:
+            subprocess.run(['libreoffice', '--version'], capture_output=True, check=True)
+        except subprocess.CalledProcessError:
+            return jsonify({"status": "error", "message": "LibreOffice is not available"}), 500
+        
+        return jsonify({
+            "status": "healthy",
+            "version": "1.0.0",
+            "timestamp": datetime.now().isoformat()
+        }), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
