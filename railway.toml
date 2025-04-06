@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "apt-get update && apt-get install -y libreoffice && pip install -r requirements.txt"
+buildCommand = "nix-env -iA nixpkgs.libreoffice && pip install -r requirements.txt"
 
 [deploy]
 startCommand = "gunicorn app:app"
@@ -12,4 +12,5 @@ restartPolicyMaxRetries = 10
 [deploy.env]
 PYTHONUNBUFFERED = "1"
 FLASK_ENV = "production"
-FLASK_APP = "app.py" 
+FLASK_APP = "app.py"
+PATH = "/nix/var/nix/profiles/default/bin:$PATH" 
