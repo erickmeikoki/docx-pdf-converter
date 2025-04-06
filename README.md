@@ -1,72 +1,99 @@
 # DOCX to PDF Converter
 
-A simple web application that allows users to upload DOCX files and convert them to PDF format.
+A web application that converts DOCX files to PDF format using LibreOffice. Built with Flask, Docker, and deployed on Railway.
 
-## Prerequisites
+## Features
 
-- Python 3.7 or higher
-- LibreOffice (for DOCX to PDF conversion)
-- pip (Python package manager)
+- Convert DOCX files to PDF
+- Preview PDF files before downloading
+- Multiple file upload support
+- Batch conversion mode
+- Automatic file cleanup
+- File size limit: 16MB per file
+- Modern, responsive UI with Tailwind CSS
 
-## Installation
+## Tech Stack
 
-1. Install LibreOffice:
+- **Backend**: Flask (Python)
+- **Frontend**: HTML, CSS (Tailwind), JavaScript
+- **Document Conversion**: LibreOffice
+- **Containerization**: Docker
+- **Deployment**: Railway
+- **Version Control**: Git
+
+## Live Demo
+
+The application is hosted on Railway and can be accessed at:
+[https://web-production-c92a3.up.railway.app/](https://web-production-c92a3.up.railway.app/)
+
+## Local Development
+
+### Prerequisites
+
+- Python 3.9+
+- LibreOffice
+- Docker (optional)
+
+### Installation
+
+1. Clone the repository:
 
    ```bash
-   # On macOS
-   brew install --cask libreoffice
-
-   # On Ubuntu/Debian
-   sudo apt-get install libreoffice
-
-   # On Windows
-   # Download and install LibreOffice from https://www.libreoffice.org/download/download/
+   git clone https://github.com/erickmeikoki/docx-pdf-converter.git
+   cd docx-pdf-converter
    ```
 
-2. Install Python dependencies:
+2. Create a virtual environment:
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. Install dependencies:
+
    ```bash
    pip install -r requirements.txt
    ```
 
-## Running the Application
-
-1. Navigate to the project directory:
-
-   ```bash
-   cd docx_to_pdf
-   ```
-
-2. Run the Flask application:
-
+4. Run the application:
    ```bash
    python app.py
    ```
 
-3. Open your web browser and visit:
-   ```
-   http://localhost:5000
-   ```
+### Docker
 
-## Features
+To run the application using Docker:
 
-- Drag and drop interface for file upload
-- Support for DOCX files up to 16MB
-- Automatic conversion to PDF
-- Clean and modern user interface
-- Progress indicator during conversion
-- Automatic file cleanup after conversion
+```bash
+docker build -t docx-pdf-converter .
+docker run -p 8000:8000 docx-pdf-converter
+```
 
-## Security Notes
+## Deployment
 
-- Files are temporarily stored during conversion and automatically deleted afterward
-- Only DOCX files are allowed for upload
-- Maximum file size is limited to 16MB
+The application is deployed on Railway using Docker. The deployment process includes:
 
-## Troubleshooting
+1. Automatic builds from the main branch
+2. Health checks for application availability
+3. Automatic scaling based on demand
+4. Environment variable management
+5. Logging and monitoring
 
-If you encounter any issues:
+## Contributing
 
-1. Ensure LibreOffice is properly installed and accessible from the command line
-2. Check that all Python dependencies are installed correctly
-3. Verify that the uploads directory has proper write permissions
-4. Check the application logs for any error messages
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- LibreOffice for document conversion capabilities
+- Railway for hosting and deployment
+- Tailwind CSS for the UI framework
