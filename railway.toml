@@ -1,9 +1,8 @@
 [build]
-builder = "nixpacks"
-buildCommand = "nix-env -iA nixpkgs.libreoffice && pip install -r requirements.txt"
+builder = "docker"
 
 [deploy]
-startCommand = "gunicorn app:app"
+startCommand = "gunicorn --bind 0.0.0.0:$PORT app:app"
 healthcheckPath = "/"
 healthcheckTimeout = 100
 restartPolicyType = "on_failure"
@@ -12,5 +11,4 @@ restartPolicyMaxRetries = 10
 [deploy.env]
 PYTHONUNBUFFERED = "1"
 FLASK_ENV = "production"
-FLASK_APP = "app.py"
-PATH = "/nix/var/nix/profiles/default/bin:$PATH" 
+FLASK_APP = "app.py" 
