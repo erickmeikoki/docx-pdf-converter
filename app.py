@@ -7,6 +7,7 @@ import base64
 from datetime import datetime
 import tempfile
 import shutil
+import time
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -53,14 +54,25 @@ def health_check():
         
         # Check if LibreOffice is available
         try:
-            subprocess.run(['libreoffice', '--version'], capture_output=True, check=True)
-        except subprocess.CalledProcessError:
-            return jsonify({"status": "error", "message": "LibreOffice is not available"}), 500
+            result = subprocess.run(['libreoffice', '--version'], capture_output=True, text=True, check=True)
+            if not result.stdout:
+                return jsonify({"status": "error", "message": "LibreOffice version check failed"}), 500
+        except subprocess.CalledProcessError as e:
+            return jsonify({"status": "error", "message": f"LibreOffice check failed: {str(e)}"}), 500
+        
+        # Check if we can create and write to a temporary file
+        try:
+            with tempfile.NamedTemporaryFile(dir=app.config['TEMP_FOLDER'], delete=True) as temp_file:
+                temp_file.write(b'test')
+                temp_file.flush()
+        except Exception as e:
+            return jsonify({"status": "error", "message": f"Temp file test failed: {str(e)}"}), 500
         
         return jsonify({
             "status": "healthy",
             "version": "1.0.0",
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
+            "libreoffice": result.stdout.strip() if 'result' in locals() else "unknown"
         }), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
