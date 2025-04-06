@@ -3,9 +3,9 @@ builder = "DOCKERFILE"
 dockerfilePath = "./Dockerfile"
 
 [deploy]
-startCommand = "gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 300 --preload --access-logfile - app:app"
+startCommand = "python app.py"
 healthcheckPath = "/"
-healthcheckTimeout = 300
+healthcheckTimeout = 60
 startupTimeout = 300
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10

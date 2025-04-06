@@ -7,6 +7,11 @@ import base64
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import time
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -39,64 +44,66 @@ def cleanup_old_files():
                     try:
                         os.remove(file_path)
                     except Exception as e:
-                        print(f"Error deleting file {file_path}: {e}")
+                        logger.error(f"Error deleting file {file_path}: {e}")
+
+def check_system_health():
+    """Check if all system requirements are met"""
+    try:
+        # Check directories
+        for folder in [UPLOAD_FOLDER, TEMP_FOLDER]:
+            if not os.path.exists(folder):
+                os.makedirs(folder)
+            if not os.access(folder, os.W_OK):
+                return False, f"Directory {folder} is not writable"
+        
+        # Check LibreOffice
+        try:
+            result = subprocess.run(['libreoffice', '--version'], capture_output=True, text=True, check=True)
+            if not result.stdout:
+                return False, "LibreOffice version check failed"
+        except subprocess.CalledProcessError as e:
+            return False, f"LibreOffice check failed: {str(e)}"
+        
+        # Check temp file creation
+        try:
+            with tempfile.NamedTemporaryFile(dir=TEMP_FOLDER, delete=True) as temp_file:
+                temp_file.write(b'test')
+                temp_file.flush()
+        except Exception as e:
+            return False, f"Temp file test failed: {str(e)}"
+        
+        return True, "System is healthy"
+    except Exception as e:
+        return False, str(e)
 
 @app.route('/')
 def index():
     """Root endpoint that serves as health check"""
     try:
         cleanup_old_files()
-        # Check if required directories exist and are writable
-        for folder in [UPLOAD_FOLDER, TEMP_FOLDER]:
-            if not os.path.exists(folder):
-                os.makedirs(folder)
-            if not os.access(folder, os.W_OK):
-                return jsonify({"status": "error", "message": f"Directory {folder} is not writable"}), 500
-        
-        # Check if LibreOffice is available
-        try:
-            subprocess.run(['libreoffice', '--version'], capture_output=True, check=True)
-        except subprocess.CalledProcessError:
-            return jsonify({"status": "error", "message": "LibreOffice is not available"}), 500
-        
+        is_healthy, message = check_system_health()
+        if not is_healthy:
+            return jsonify({"status": "error", "message": message}), 500
         return render_template('index.html')
     except Exception as e:
+        logger.error(f"Error in index route: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/health')
 def health_check():
     """Health check endpoint"""
     try:
-        # Check if required directories exist and are writable
-        for folder in [UPLOAD_FOLDER, TEMP_FOLDER]:
-            if not os.path.exists(folder):
-                os.makedirs(folder)
-            if not os.access(folder, os.W_OK):
-                return jsonify({"status": "error", "message": f"Directory {folder} is not writable"}), 500
-        
-        # Check if LibreOffice is available
-        try:
-            result = subprocess.run(['libreoffice', '--version'], capture_output=True, text=True, check=True)
-            if not result.stdout:
-                return jsonify({"status": "error", "message": "LibreOffice version check failed"}), 500
-        except subprocess.CalledProcessError as e:
-            return jsonify({"status": "error", "message": f"LibreOffice check failed: {str(e)}"}), 500
-        
-        # Check if we can create and write to a temporary file
-        try:
-            with tempfile.NamedTemporaryFile(dir=TEMP_FOLDER, delete=True) as temp_file:
-                temp_file.write(b'test')
-                temp_file.flush()
-        except Exception as e:
-            return jsonify({"status": "error", "message": f"Temp file test failed: {str(e)}"}), 500
+        is_healthy, message = check_system_health()
+        if not is_healthy:
+            return jsonify({"status": "error", "message": message}), 500
         
         return jsonify({
             "status": "healthy",
             "version": "1.0.0",
-            "timestamp": datetime.now().isoformat(),
-            "libreoffice": result.stdout.strip() if 'result' in locals() else "unknown"
+            "timestamp": datetime.now().isoformat()
         }), 200
     except Exception as e:
+        logger.error(f"Error in health check: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/upload', methods=['POST'])
@@ -143,19 +150,28 @@ def upload_file():
                     })
                     
             except subprocess.CalledProcessError as e:
+                logger.error(f"Conversion failed: {str(e)}")
                 return jsonify({'error': f'Conversion failed: {str(e)}'}), 500
             except Exception as e:
+                logger.error(f"An error occurred: {str(e)}")
                 return jsonify({'error': f'An error occurred: {str(e)}'}), 500
             finally:
                 # Clean up the uploaded file
                 try:
                     os.remove(file_path)
                 except Exception as e:
-                    print(f"Error deleting file {file_path}: {e}")
+                    logger.error(f"Error deleting file {file_path}: {e}")
         else:
             return jsonify({'error': 'Invalid file type. Only DOCX files are allowed.'}), 400
     
     return jsonify({'results': results})
 
 if __name__ == '__main__':
+    # Check system health before starting
+    is_healthy, message = check_system_health()
+    if not is_healthy:
+        logger.error(f"System health check failed: {message}")
+        exit(1)
+    
+    logger.info("Starting Flask application...")
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8000))) 

@@ -31,11 +31,11 @@ RUN chmod -R 777 uploads temp
 
 # Create a simple health check script
 RUN echo '#!/bin/bash\n\
-for i in {1..30}; do\n\
+for i in {1..12}; do\n\
   if curl -f http://localhost:$PORT/; then\n\
     exit 0\n\
   fi\n\
-  sleep 2\n\
+  sleep 5\n\
 done\n\
 exit 1' > /usr/local/bin/healthcheck.sh \
     && chmod +x /usr/local/bin/healthcheck.sh
@@ -43,5 +43,5 @@ exit 1' > /usr/local/bin/healthcheck.sh \
 # Expose the port
 EXPOSE $PORT
 
-# Run the application with proper signal handling
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 300 --preload --access-logfile - app:app"] 
+# Run the application directly with Python
+CMD ["python", "app.py"] 
