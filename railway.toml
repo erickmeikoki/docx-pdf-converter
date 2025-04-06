@@ -1,8 +1,9 @@
 [build]
-builder = "docker"
+builder = "DOCKERFILE"
+dockerfilePath = "./Dockerfile"
 
 [deploy]
-startCommand = "gunicorn --bind 0.0.0.0:$PORT app:app"
+startCommand = "gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 120 app:app"
 healthcheckPath = "/"
 healthcheckTimeout = 100
 restartPolicyType = "on_failure"
@@ -11,4 +12,5 @@ restartPolicyMaxRetries = 10
 [deploy.env]
 PYTHONUNBUFFERED = "1"
 FLASK_ENV = "production"
-FLASK_APP = "app.py" 
+FLASK_APP = "app.py"
+PORT = "8000" 
