@@ -1,31 +1,36 @@
-from flask import Flask, render_template, request, send_file, redirect, url_for, jsonify
+from flask import Flask, request, jsonify, send_file, render_template
 import os
-import uuid
-from werkzeug.utils import secure_filename
 import subprocess
-import base64
-from datetime import datetime
 import tempfile
 import shutil
+import base64
+from werkzeug.utils import secure_filename
+from datetime import datetime
 import time
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['TEMP_FOLDER'] = 'temp'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-app.config['ALLOWED_EXTENSIONS'] = {'docx'}
 
-# Create uploads directory if it doesn't exist
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs(app.config['TEMP_FOLDER'], exist_ok=True)
+# Configuration
+UPLOAD_FOLDER = 'uploads'
+TEMP_FOLDER = 'temp'
+MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
+ALLOWED_EXTENSIONS = {'docx'}
+
+# Ensure upload and temp directories exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(TEMP_FOLDER, exist_ok=True)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['TEMP_FOLDER'] = TEMP_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def cleanup_old_files():
     """Clean up files older than 1 hour"""
     current_time = datetime.now()
-    for folder in [app.config['UPLOAD_FOLDER'], app.config['TEMP_FOLDER']]:
+    for folder in [UPLOAD_FOLDER, TEMP_FOLDER]:
         for filename in os.listdir(folder):
             file_path = os.path.join(folder, filename)
             if os.path.isfile(file_path):
@@ -38,15 +43,32 @@ def cleanup_old_files():
 
 @app.route('/')
 def index():
-    cleanup_old_files()
-    return render_template('index.html')
+    """Root endpoint that serves as health check"""
+    try:
+        cleanup_old_files()
+        # Check if required directories exist and are writable
+        for folder in [UPLOAD_FOLDER, TEMP_FOLDER]:
+            if not os.path.exists(folder):
+                os.makedirs(folder)
+            if not os.access(folder, os.W_OK):
+                return jsonify({"status": "error", "message": f"Directory {folder} is not writable"}), 500
+        
+        # Check if LibreOffice is available
+        try:
+            subprocess.run(['libreoffice', '--version'], capture_output=True, check=True)
+        except subprocess.CalledProcessError:
+            return jsonify({"status": "error", "message": "LibreOffice is not available"}), 500
+        
+        return render_template('index.html')
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/health')
 def health_check():
     """Health check endpoint"""
     try:
         # Check if required directories exist and are writable
-        for folder in [app.config['UPLOAD_FOLDER'], app.config['TEMP_FOLDER']]:
+        for folder in [UPLOAD_FOLDER, TEMP_FOLDER]:
             if not os.path.exists(folder):
                 os.makedirs(folder)
             if not os.access(folder, os.W_OK):
@@ -62,7 +84,7 @@ def health_check():
         
         # Check if we can create and write to a temporary file
         try:
-            with tempfile.NamedTemporaryFile(dir=app.config['TEMP_FOLDER'], delete=True) as temp_file:
+            with tempfile.NamedTemporaryFile(dir=TEMP_FOLDER, delete=True) as temp_file:
                 temp_file.write(b'test')
                 temp_file.flush()
         except Exception as e:

@@ -29,19 +29,14 @@ RUN mkdir -p uploads temp
 # Set permissions
 RUN chmod -R 777 uploads temp
 
-# Create a more robust health check script
+# Create a simple health check script
 RUN echo '#!/bin/bash\n\
-echo "Waiting for application to start..."\n\
-for i in {1..60}; do\n\
-  echo "Attempt $i: Checking health..."\n\
-  if curl -f http://localhost:$PORT/health; then\n\
-    echo "Health check passed!"\n\
+for i in {1..30}; do\n\
+  if curl -f http://localhost:$PORT/; then\n\
     exit 0\n\
   fi\n\
-  echo "Health check failed, retrying in 5 seconds..."\n\
-  sleep 5\n\
+  sleep 2\n\
 done\n\
-echo "Health check failed after 60 attempts"\n\
 exit 1' > /usr/local/bin/healthcheck.sh \
     && chmod +x /usr/local/bin/healthcheck.sh
 
@@ -49,4 +44,4 @@ exit 1' > /usr/local/bin/healthcheck.sh \
 EXPOSE $PORT
 
 # Run the application with proper signal handling
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 300 --preload app:app"] 
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 300 --preload --access-logfile - app:app"] 
